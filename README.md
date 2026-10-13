@@ -10,7 +10,18 @@ This extension helps you monitor how much of your Claude usage quota remains. It
 
 ## Installation
 
-### Chrome
+### Direct Download (Pre-built ZIP)
+
+Download the latest built extension package directly:
+- 📦 **[Download Latest Chrome/Brave/Edge Extension (.zip)](./web-ext-artifacts/claude_usage_tracker-6.1.4-chrome.zip)**
+
+**How to install in Chrome / Brave / Edge:**
+1. Download and extract [`claude_usage_tracker-6.1.4-chrome.zip`](./web-ext-artifacts/claude_usage_tracker-6.1.4-chrome.zip).
+2. Go to `chrome://extensions` (or `brave://extensions` / `edge://extensions`).
+3. Enable **Developer mode** (toggle in the top-right corner).
+4. Click **Load unpacked** and select the extracted folder.
+
+### Chrome Web Store
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/knemcdpkggnbhpoaaagmjiigenifejfo.svg)](https://chrome.google.com/webstore/detail/claude-usage-tracker/knemcdpkggnbhpoaaagmjiigenifejfo)
 
 ### Firefox

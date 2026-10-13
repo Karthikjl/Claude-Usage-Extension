@@ -365,32 +365,10 @@ class UsageUI {
 		sectionsContainer.appendChild(this.usageSection.elements.container);
 		content.appendChild(sectionsContainer);
 
-		// Add footers
-		let desktopFooter = null;
-		let qolFooter = null;
-		const isElectron = await sendBackgroundMessage({ type: 'isElectron' });
-		if (!isElectron) {
-			desktopFooter = this.createDesktopFooter();
-			content.appendChild(desktopFooter);
-
-			qolFooter = this.createQoLFooter();
-			if (qolFooter) {
-				content.appendChild(qolFooter);
-			}
-		}
-
-		// Built on every platform, Electron included: unlike the desktop/QoL links a bug report
-		// is relevant wherever the extension runs.
-		const bugFooter = this.createBugFooter();
-		content.appendChild(bugFooter);
-
-		const donateFooter = this.createDonateFooter();
-		content.appendChild(donateFooter);
-
 		container.appendChild(header);
 		container.appendChild(content);
 
-		const elements = { container, content, toggle, desktopFooter, qolFooter, bugFooter };
+		const elements = { container, content, toggle };
 		toggle.addEventListener('click', () => this.setCollapsed(!this.state.collapsed));
 
 		return elements;
@@ -453,22 +431,7 @@ class UsageUI {
 			Object.keys(prefs).filter(key => !SIDEBAR_LINK_KEYS.includes(key) && !isSidebarItemVisible(prefs, key))
 		);
 
-		// Absent on Electron, where the footers are never built.
-		const desktopFooter = this.elements.sidebar?.desktopFooter;
-		if (desktopFooter) {
-			desktopFooter.style.display = isSidebarItemVisible(prefs, 'desktopLink') ? '' : 'none';
-		}
 
-		// Possibly detached by checkQoLInstalled() when QoL is present; styling it then is harmless.
-		const qolFooter = this.elements.sidebar?.qolFooter;
-		if (qolFooter) {
-			qolFooter.style.display = isSidebarItemVisible(prefs, 'qolLink') ? '' : 'none';
-		}
-
-		const bugFooter = this.elements.sidebar?.bugFooter;
-		if (bugFooter) {
-			bugFooter.style.display = isSidebarItemVisible(prefs, 'bugLink') ? '' : 'none';
-		}
 
 		if (this.state.usageData) this.renderAll();
 	}
@@ -501,68 +464,7 @@ class UsageUI {
 		if (persist) browser.storage.local.set({ usageSectionCollapsed: collapsed });
 	}
 
-	createDesktopFooter() {
-		const footer = document.createElement('div');
-		footer.className = 'ut-desktop-footer ut-sidebar-footer mt-1';
 
-		const link = document.createElement('a');
-		link.href = 'https://github.com/lugia19/claude-webext-patcher';
-		link.target = '_blank';
-		link.className = 'ut-link hover:text-text-200';
-		link.style.color = BLUE_HIGHLIGHT;
-		link.textContent = '💻 ' + localize('usage.footer_desktop');
-
-		footer.appendChild(link);
-		return footer;
-	}
-
-	createQoLFooter() {
-		const footer = document.createElement('div');
-		footer.className = 'ut-desktop-footer ut-sidebar-footer mt-1 ut-qol-footer';
-
-		const isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
-		const link = document.createElement('a');
-		link.href = isChrome
-			? 'https://chromewebstore.google.com/detail/claude-qol/dkdnancajokhfclpjpplkhlkbhaeejob'
-			: 'https://addons.mozilla.org/en-US/firefox/addon/claude-qol/';
-		link.target = '_blank';
-		link.className = 'ut-link hover:text-text-200';
-		link.style.color = BLUE_HIGHLIGHT;
-		link.textContent = '⚡ ' + localize('usage.footer_qol');
-
-		footer.appendChild(link);
-		return footer;
-	}
-
-	createBugFooter() {
-		const footer = document.createElement('div');
-		footer.className = 'ut-desktop-footer ut-sidebar-footer mt-1';
-
-		const link = document.createElement('a');
-		link.href = 'https://github.com/lugia19/Claude-Usage-Extension/issues';
-		link.target = '_blank';
-		link.className = 'ut-link hover:text-text-200';
-		link.style.color = BLUE_HIGHLIGHT;
-		link.textContent = '🐛 ' + localize('usage.footer_bug');
-
-		footer.appendChild(link);
-		return footer;
-	}
-
-	createDonateFooter() {
-		const footer = document.createElement('div');
-		footer.className = 'ut-desktop-footer ut-sidebar-footer mt-1';
-
-		const link = document.createElement('a');
-		link.href = 'https://ko-fi.com/lugia19';
-		link.target = '_blank';
-		link.className = 'ut-link';
-		link.style.cssText = 'background: #2c84db; color: white; padding: 2px 6px; border-radius: 4px; display: inline-block;';
-		link.textContent = '☕ ' + localize('usage.footer_kofi');
-
-		footer.appendChild(link);
-		return footer;
-	}
 
 	createChatElements() {
 		// Stat line container
@@ -576,13 +478,17 @@ class UsageUI {
 		leftContainer.id = 'ut-stat-left';
 		leftContainer.className = 'ut-row ut-statline-left';
 
+		// Session group
+		const sessionGroup = document.createElement('div');
+		sessionGroup.className = 'ut-row ut-statline-group';
+
 		const usageDisplay = document.createElement('div');
 		usageDisplay.className = 'text-text-400 text-xs';
 		usageDisplay.style.whiteSpace = 'nowrap';
 		if (!isMobileLayout()) usageDisplay.style.marginRight = '8px';
 		usageDisplay.textContent = localize('usage.session_inline');
 
-		leftContainer.appendChild(usageDisplay);
+		sessionGroup.appendChild(usageDisplay);
 
 		// Progress bar (desktop only)
 		let progressBar = null;
@@ -590,8 +496,32 @@ class UsageUI {
 			progressBar = new ProgressBar({ width: '100%' });
 			progressBar.track.classList.remove('bg-bg-500');
 			progressBar.track.classList.add('bg-bg-200');
-			leftContainer.appendChild(progressBar.container);
+			sessionGroup.appendChild(progressBar.container);
 		}
+
+		// Weekly group
+		const weeklyGroup = document.createElement('div');
+		weeklyGroup.className = 'ut-row ut-statline-group';
+		weeklyGroup.style.display = 'none';
+
+		const weeklyDisplay = document.createElement('div');
+		weeklyDisplay.className = 'text-text-400 text-xs';
+		weeklyDisplay.style.whiteSpace = 'nowrap';
+		if (!isMobileLayout()) weeklyDisplay.style.marginRight = '8px';
+		weeklyDisplay.textContent = localize('usage.label_weekly');
+
+		weeklyGroup.appendChild(weeklyDisplay);
+
+		let weeklyProgressBar = null;
+		if (!isMobileLayout()) {
+			weeklyProgressBar = new ProgressBar({ width: '100%' });
+			weeklyProgressBar.track.classList.remove('bg-bg-500');
+			weeklyProgressBar.track.classList.add('bg-bg-200');
+			weeklyGroup.appendChild(weeklyProgressBar.container);
+		}
+
+		leftContainer.appendChild(sessionGroup);
+		leftContainer.appendChild(weeklyGroup);
 
 		// Spacer
 		const spacer = document.createElement('div');
@@ -620,7 +550,7 @@ class UsageUI {
 		statLine.appendChild(spacer);
 		statLine.appendChild(rightContainer);
 
-		return { statLine, usageDisplay, progressBar, peakIndicator, resetDisplay };
+		return { statLine, sessionGroup, weeklyGroup, usageDisplay, weeklyDisplay, progressBar, weeklyProgressBar, peakIndicator, resetDisplay };
 	}
 
 	createTooltips() {
@@ -634,9 +564,10 @@ class UsageUI {
 		const peakEnd = formatLocal(18);
 
 		const { chat } = this.elements;
-		for (const el of [chat.usageDisplay, chat.resetDisplay, chat.peakIndicator]) el.style.cursor = 'help';
+		for (const el of [chat.usageDisplay, chat.weeklyDisplay, chat.resetDisplay, chat.peakIndicator]) if (el) el.style.cursor = 'help';
 		return {
 			usage: createClaudeTooltip(chat.usageDisplay, localize('usage.tooltip_usage')),
+			weekly: chat.weeklyDisplay ? createClaudeTooltip(chat.weeklyDisplay, localize('usage.marker_fallback')) : null,
 			timer: createClaudeTooltip(chat.resetDisplay, localize('usage.tooltip_timer')),
 			peak: createClaudeTooltip(chat.peakIndicator, localize('usage.tooltip_peak', { start: peakStart, end: peakEnd })),
 		};
@@ -672,11 +603,19 @@ class UsageUI {
 	// The stat line row collapses to nothing once its children are hidden, so the container itself
 	// stays in the DOM and LengthUI.mountStatLine() keeps finding #ut-stat-right.
 	setChatUsageVisible(visible) {
-		const { usageDisplay, progressBar, peakIndicator, resetDisplay } = this.elements.chat;
+		const { sessionGroup, weeklyGroup, usageDisplay, progressBar, peakIndicator, resetDisplay } = this.elements.chat;
 		const display = visible ? '' : 'none';
 
-		usageDisplay.style.display = display;
-		if (progressBar) progressBar.container.style.display = display;
+		if (sessionGroup) {
+			sessionGroup.style.display = display;
+		} else {
+			usageDisplay.style.display = display;
+			if (progressBar) progressBar.container.style.display = display;
+		}
+
+		if (!visible && weeklyGroup) {
+			weeklyGroup.style.display = 'none';
+		}
 
 		// The countdown is session-specific, so it tracks the session limit rather than the row as a
 		// whole. The credits branch renders with no session at all on a credit-funded model, and
@@ -691,7 +630,7 @@ class UsageUI {
 
 	renderChatArea() {
 		const { usageData } = this.state;
-		const { usageDisplay, progressBar, peakIndicator, resetDisplay } = this.elements.chat;
+		const { sessionGroup, weeklyGroup, usageDisplay, weeklyDisplay, progressBar, weeklyProgressBar, peakIndicator, resetDisplay } = this.elements.chat;
 
 		if (!usageData) return;
 
@@ -713,6 +652,7 @@ class UsageUI {
 		// either the plan limits are maxed, or the selected model is credit-funded (e.g. Fable
 		// on a tier where it has no plan-scoped weekly limit).
 		if (usageData.isSpendingCredits(modelName)) {
+			if (weeklyGroup) weeklyGroup.style.display = 'none';
 			const effectiveTotal = usageData.getExtraUsageEffectiveTotal();
 			const used = usageData.extraUsage.usedCredits;
 			const pct = effectiveTotal > 0 ? (used / effectiveTotal) * 100 : 0;
@@ -755,16 +695,29 @@ class UsageUI {
 				progressBar.tooltip.updateText(localize('usage.tooltip_pct_used', { pct: session.percentage.toFixed(0) }));
 			}
 
-			// Add weekly marker (filter by current model)
-			const weeklyLimit = usageData.getBindingWeeklyLimit(modelName);
-			if (weeklyLimit) {
-				const markerKeys = { weekly: 'usage.marker_all', sonnetWeekly: 'usage.marker_sonnet', opusWeekly: 'usage.marker_opus', fableWeekly: 'usage.marker_fable' };
-				const markerName = markerKeys[weeklyLimit.key] ? localize(markerKeys[weeklyLimit.key]) : localize('usage.marker_fallback');
-				const markerLabel = `${markerName}: ${weeklyLimit.percentage.toFixed(0)}%`;
-				progressBar.setMarker(weeklyLimit.percentage, markerLabel);
-			} else {
-				progressBar.clearMarker();
+			progressBar.clearMarker();
+		}
+
+		// Weekly display & progress bar
+		const weeklyLimit = usageData.getBindingWeeklyLimit(modelName);
+		if (weeklyLimit && weeklyGroup) {
+			weeklyGroup.style.display = '';
+			const weeklyColor = weeklyLimit.percentage >= CONFIG.WARNING_THRESHOLD * 100 ? RED_WARNING : BLUE_HIGHLIGHT;
+			weeklyDisplay.innerHTML = `${localize('usage.label_weekly')} <span class="ut-statline-pct" style="color: ${weeklyColor}">${weeklyLimit.percentage.toFixed(0)}%</span>`;
+
+			if (!isMobileLayout() && weeklyProgressBar) {
+				weeklyProgressBar.updateProgress(weeklyLimit.percentage, 100);
+
+				let weeklyCap = CONFIG.ESTIMATED_CAPS?.[usageData.subscriptionTier]?.[weeklyLimit.key];
+				if (weeklyCap) {
+					const used = Math.round((weeklyLimit.percentage / 100) * weeklyCap);
+					weeklyProgressBar.tooltip.updateText(localize('usage.tooltip_tokens', { used: fmtNum(used), cap: fmtNum(weeklyCap), pct: weeklyLimit.percentage.toFixed(0) }));
+				} else {
+					weeklyProgressBar.tooltip.updateText(localize('usage.tooltip_pct_used', { pct: weeklyLimit.percentage.toFixed(0) }));
+				}
 			}
+		} else if (weeklyGroup) {
+			weeklyGroup.style.display = 'none';
 		}
 
 		// Reset time (session)
@@ -879,16 +832,6 @@ class UsageUI {
 		}
 	}
 
-	checkQoLInstalled() {
-		const hasQoL = document.documentElement.hasAttribute('data-claude-qol-installed');
-		if (hasQoL) {
-			const qolFooter = this.elements.sidebar?.container?.querySelector('.ut-qol-footer');
-			if (qolFooter) {
-				qolFooter.remove();
-			}
-		}
-	}
-
 	// ========== UPDATE LOOP ==========
 
 	startUpdateLoop() {
@@ -899,7 +842,6 @@ class UsageUI {
 				this.checkExpiredLimits();
 				this.checkModelChange();
 				this.checkPeakHoursChange();
-				this.checkQoLInstalled();
 				this.mountSidebar();
 				this.mountChatArea();
 			}

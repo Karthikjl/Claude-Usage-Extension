@@ -1,4 +1,6 @@
 web-ext-artifacts/*
+!web-ext-artifacts/*.zip
+dist/
 debug/
 .idea/*
 icon_new.psd
@@ -9,8 +11,8 @@ run-android.bat
 node_modules/*
 .claude/*
 content-components/ui_dataclasses.js
-content-components/ui_dataclasses.js
 *.png
 *.psd
 CLAUDE.md
 TODO.md
+

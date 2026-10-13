@@ -105,14 +105,13 @@ function settingsToggle(section, label, checked, onChange = null) {
 // (the modal is rebuilt from storage on each open), and Save commits the lot and reloads: the
 // reload re-applies everything, instead of each control patching the live UI itself.
 async function showSettingsModal() {
-	const [apiKey, resetEnabled, resetThreshold, extraAgainstLimit, stored, sidebarPrefs, isElectron] = await Promise.all([
+	const [apiKey, resetEnabled, resetThreshold, extraAgainstLimit, stored, sidebarPrefs] = await Promise.all([
 		sendBackgroundMessage({ type: 'getAPIKey' }),
 		sendBackgroundMessage({ type: 'getResetNotifEnabled' }),
 		sendBackgroundMessage({ type: 'getResetNotifThreshold' }),
 		sendBackgroundMessage({ type: 'getExtraUsageAgainstLimit' }),
 		browser.storage.local.get(LENGTH_DISPLAY_KEY),
 		getSidebarDisplayPrefs(),
-		sendBackgroundMessage({ type: 'isElectron' }),
 	]);
 
 	// Flex rather than grid: each column takes only the width its content needs, and the right
@@ -182,7 +181,7 @@ async function showSettingsModal() {
 	langSection.appendChild(langSelect);
 	leftColumn.appendChild(langSection);
 
-	// Sidebar display: one switch per bar this account actually has, plus the footer links. Built
+	// Sidebar display: one switch per bar this account actually has. Built
 	// from the live usage data, united with the stored keys so a bar hidden before its data loaded
 	// still has a way back on.
 	const sidebarSection = settingsSection(localize('card.section_sidebar_display'));
@@ -196,22 +195,6 @@ async function showSettingsModal() {
 		const label = (usageUI.usageSection?.getLimitLabel(key) ?? key).replace(/\s*[:：]\s*$/, '');
 		sidebarBoxes.set(key, settingsToggle(sidebarSection, label, isSidebarItemVisible(sidebarPrefs, key)));
 	}
-	// Electron never builds the desktop-version footer, and the QoL footer removes itself once QoL
-	// is installed, so only offer toggles for links that can actually show.
-	const linkToggles = [];
-	if (!isElectron) {
-		linkToggles.push(['desktopLink', 'card.sidebar_desktop_link']);
-		if (!document.documentElement.hasAttribute('data-claude-qol-installed')) {
-			linkToggles.push(['qolLink', 'card.sidebar_qol_link']);
-		}
-	}
-	linkToggles.push(['bugLink', 'card.sidebar_bug_link']);
-	linkToggles.forEach(([key, labelKey], i) => {
-		const input = settingsToggle(sidebarSection, localize(labelKey), isSidebarItemVisible(sidebarPrefs, key));
-		// Set the links apart from the bars above them.
-		if (i === 0 && limitKeys.length) sidebarSection.lastElementChild.style.marginTop = '10px';
-		sidebarBoxes.set(key, input);
-	});
 	rightColumn.appendChild(sidebarSection);
 
 	// Extra usage: measured against the monthly spend limit (issue #96, the default for new installs)
